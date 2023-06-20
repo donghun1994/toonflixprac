@@ -1,100 +1,55 @@
 import 'package:carrot/page/detail.dart';
 import 'package:carrot/repository/contents_respository.dart';
+import 'package:carrot/utils/utils.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_svg/svg.dart';
 
-import '../utils/utils.dart';
-
-class Home extends StatefulWidget {
-  const Home({super.key});
+class MyFavoriteContents extends StatefulWidget {
+  const MyFavoriteContents({super.key});
 
   @override
-  State<Home> createState() => _HomeState();
+  State<MyFavoriteContents> createState() => _MyFavoriteContentsState();
 }
 
-class _HomeState extends State<Home> {
-  late String currentlocation;
+class _MyFavoriteContentsState extends State<MyFavoriteContents> {
   late ContentsRepository contentsRepository = ContentsRepository();
-  final Map<String, String> locationTypeToString = {
-    'ara': '아라동',
-    'ora': '오라동',
-    'donam': '도남동'
-  };
 
   @override
   void initState() {
     super.initState();
-    currentlocation = 'ara';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _appbarWidget(),
-      body: _bodyWidget(),
-    );
+    contentsRepository = ContentsRepository();
   }
 
   PreferredSizeWidget _appbarWidget() {
     return AppBar(
-      elevation: 1,
-      title: GestureDetector(
-        onTap: () {
-          print("click");
-        },
-        child: PopupMenuButton<String>(
-          offset: const Offset(-3, 30),
-          shape: ShapeBorder.lerp(
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              1),
-          onSelected: (String where) {
-            setState(() {
-              currentlocation = where;
-            });
-          },
-          itemBuilder: (context) {
-            return [
-              const PopupMenuItem(value: "ara", child: Text("아라동")),
-              const PopupMenuItem(value: "ora", child: Text("오라동")),
-              const PopupMenuItem(value: "donam", child: Text("도남동"))
-            ];
-          },
-          child: Row(
-            children: [
-              Text(locationTypeToString[currentlocation] ?? ''),
-              const Icon(Icons.arrow_drop_down),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        IconButton(
-          onPressed: () {},
-          icon: const Icon(Icons.search),
-        ),
-        IconButton(
-          onPressed: () {},
-          icon: const Icon(Icons.tune),
-        ),
-        IconButton(
-          onPressed: () {},
-          icon: SvgPicture.asset(
-            "assets/svg/bell.svg",
-            width: 22,
-          ),
-        ),
-      ],
-    );
+        title: const Text(
+      '관심목록',
+      style: TextStyle(fontSize: 15, color: Colors.black),
+    ));
   }
 
-  _loadContents() {
-    return contentsRepository.loadContentsFromLocation(currentlocation);
+  Widget _bodyWidget() {
+    return FutureBuilder(
+        future: _loadMyFavoriteContentList(),
+        builder: ((BuildContext context, AsyncSnapshot snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasData == false) {
+            return const Center(child: Text('해당 지역의 데이터가 없습니다.'));
+          }
+          List<dynamic> datas = snapshot.data;
+          return _makeDataList(datas);
+        }));
   }
 
-  Widget _makeDataList(List<Map<String, String>> datas) {
+  Future<List<dynamic>> _loadMyFavoriteContentList() async {
+    return await contentsRepository.loadFavoriteContents();
+  }
+
+  Widget _makeDataList(List<dynamic> datas) {
     return ListView.separated(
-      itemCount: 10,
+      itemCount: datas.length,
       separatorBuilder: (BuildContext context, int index) {
         return Container(
           height: 1,
@@ -189,18 +144,11 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget _bodyWidget() {
-    return FutureBuilder(
-        future: _loadContents(),
-        builder: ((BuildContext context, AsyncSnapshot snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasData == false) {
-            return const Center(child: Text('해당 지역의 데이터가 없습니다.'));
-          }
-          List<Map<String, String>> datas = snapshot.data;
-          return _makeDataList(datas);
-        }));
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: _appbarWidget(),
+      body: _bodyWidget(),
+    );
   }
 }
